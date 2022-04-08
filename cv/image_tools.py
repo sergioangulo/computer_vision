@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import numpy as np
 import os
+import re
 from IPython.core.display import display as display_nbk
 
 class ImageTools():
@@ -179,6 +180,14 @@ class ImageTools():
     def select_filenames_from_in_path_with_extension(self, extension):
         file_list = [f for f in os.listdir(self.in_path) if f.endswith(f".{extension}")]
         self.selected_file_list = file_list
+    
+    def select_filenames_from_in_path_with_pattern(self, pattern):
+        file_list = [f for f in os.listdir(self.in_path) if re.match(pattern,f)]
+        self.selected_file_list = file_list
+        
+    def get_filenames_from_in_path_with_pattern(self, pattern):
+        file_list = [f for f in os.listdir(self.in_path) if re.match(pattern,f)]
+        return file_list
     
     def save_file(self, extension_output):
         try:
