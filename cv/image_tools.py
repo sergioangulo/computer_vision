@@ -39,11 +39,19 @@ class ImageTools():
         self.data = self.last_state
         self.save_data_array()
     
+    def get_dpi(self):
+        dpi_out = (self.dpi, self.dpi)
+        try:
+            dpi_out = self.data.info["dpi"]
+        except:
+            print("dpi not accesible")
+        return dpi_out
+    
     def create_plot(self):
         height, width, depth = self.data_array.shape
         # What size does the figure need to be in inches to fit the image?
-        dpi = self.data.info["dpi"]
-        print(dpi)
+        dpi = self.get_dpi()
+        
         figsize = width // float(dpi[0]), height // float(dpi[1])
         # Create a figure of the right size with one axes that takes up the full figure
         fig = plt.figure(figsize=figsize)
@@ -68,19 +76,22 @@ class ImageTools():
        
     def get_figsize(self):
         height, width, _ = self.data_array.shape
-        dpi = self.data.info["dpi"]
+        dpi = self.get_dpi()
         figsize = width // float(dpi[0]), height // float(dpi[1])
         return figsize
              
     @classmethod
-    def get_data_figsize(cls, data, data_array=None):
+    def get_data_figsize(cls, data, data_array=None, dpi_default = 25):
         ''' This function calculate real figsize
             To reduce processing time, pass data_array and data
         '''
         if data_array is None:
             data_array = np.array(data)
         height, width, _ = data_array.shape
-        dpi = data.info["dpi"]
+        try:
+            dpi = data.info["dpi"]
+        except:
+            dpi = (dpi_default, dpi_default)
         figsize = width // float(dpi[0]), height // float(dpi[1])
         return figsize
     
