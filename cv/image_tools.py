@@ -5,6 +5,7 @@ from matplotlib import cm
 import numpy as np
 import os
 import re
+from scipy.ndimage import gaussian_filter
 from IPython.core.display import display as display_nbk
 
 class ImageTools():
@@ -33,6 +34,10 @@ class ImageTools():
         self.in_path = path
     
     def set_out_path(self, path):
+        isExist = os.path.exists(path)
+        if not isExist:
+            os.makedirs(path)
+            print(f"The new path [{path}] is created!")
         self.out_path = path
         
     def revert(self):
@@ -75,7 +80,17 @@ class ImageTools():
         self.show(show_axis="off")
        
     def get_figsize(self):
-        height, width, _ = self.data_array.shape
+        if len(self.data_array.shape) == 3:
+            try:
+                height, width, _ = self.data_array.shape
+            except:
+                print("problem with expected shape")
+        else:
+            try: 
+                print(self.data_array.shape)
+                height, width = self.data_array.shape
+            except:
+                raise Exception("problem with expected shape in get_figsize")
         dpi = self.get_dpi()
         figsize = width // float(dpi[0]), height // float(dpi[1])
         return figsize
@@ -154,8 +169,11 @@ class ImageTools():
     
     def save_last_state(self):
         self.last_state = self.data
+        #self.data_array = np.array(self.data)
         
     def convert_L(self):
+        print(self)
+        print(f"in convert_L, [{self.data}]")
         self.save_last_state()
         self.data = self.data.convert("L")
     
@@ -200,9 +218,9 @@ class ImageTools():
         file_list = [f for f in os.listdir(self.in_path) if re.match(pattern,f)]
         return file_list
     
-    def save_file(self, extension_output):
+    def save_file(self, extension_output, sufix=''):
         try:
-            self.data.convert('RGB').save(f"{self.out_path}/{self.base_filename}.{extension_output}")
+            self.data.convert('RGB').save(f"{self.out_path}/{self.base_filename}{sufix}.{extension_output}")
         except IOError:
             raise Exception(f"Cannot convert file to {extension_output}")
             
@@ -281,14 +299,19 @@ class ImageTools():
     
     @staticmethod
     def pipeline(*args):
-        obj = args[0]
-        for arg in args[1:]:
-            if isinstance(arg, list):
-                method = arg[0]
-                vars = arg[1:]
-                method(obj,*vars)
-            else:
-                arg(obj)
+        try:
+            obj = args[0]
+            for arg in args[1:]:
+                if isinstance(arg, list):
+                    method = arg[0]
+                    vars = arg[1:]
+                    method(obj,*vars)
+                else:
+                    arg(obj)
+        except Exception as e:
+           print("An exception has been captured in pipeline")
+           print(e)
+           raise e
                 
     def create_pipeline(self,name, *args):
         print(args)
@@ -297,7 +320,7 @@ class ImageTools():
         
     def apply_pipeline(self, pipeline_name):
         if self.data is None :
-            raise Exception("You ust load a file to apply a pipeline")
+            raise Exception("You must load a file to apply a pipeline")
         try:
             ImageTools.pipeline(self, *self.pipelines[pipeline_name])
         except Exception as e:
@@ -318,3 +341,65 @@ class ImageTools():
                 tmp.pipelines = self.pipelines
                 tmp.apply_pipeline(pipeline_name)
             tmp = None
+
+    def gaussian_filter_x(self, sigma=10):
+        self.save_last_state()
+        self.data = self.data.convert("L")
+        self.data_array = np.array(self.data)        
+        im = self.data_array #self.data_array
+        imx_g = np.zeros(im.shape, np.uint8)
+        self.data_array= gaussian_filter(im, sigma , (1,0), imx_g)
+        self.data = Image.fromarray(self.data_array, mode='L')
+    
+    def gaussian_filter_y(self, sigma=10):
+        print("in gaussian_filter_y")
+        self.save_last_state()
+        self.data = self.data.convert("L")
+        self.data_array = np.array(self.data)        
+        im = self.data_array #self.data_array
+        imy_g = np.zeros(im.shape, np.uint8)
+        self.data_array= gaussian_filter(im, sigma , (0,1), imy_g)
+        self.data = Image.fromarray(self.data_array, mode='L')
+    
+    def from_array_to_image(self):
+        self.data = Image.fromarray(self.data_array)
+    
+    #def gaussian_filter_y(self, sigma=10):
+    #    print("in gaussian_filter_y")
+    #    self.data = self.data.convert("L")
+    #    im = np.array(self.data)
+    #    imy_g= np.zeros(im.shape)
+    #    gaussian_filter(im, (sigma,sigma), (1,0), imy_g)
+    #    self.data_array = imy_g
+    #    #self.data=Image.fromarray(self.data_array)
+    
+    #def gaussian_filter_y(self, sigma=10):
+    #    self.convert_L()
+    #    im = self.data_array
+    #    #array(Image.open('data2/01_empire.jpg').convert('L'), 'f')
+        #sigma = 10 #Desviacion estandar
+    #    imx_g = zeros(im.shape)
+    #    gaussian_filter(im, (sigma,sigma), (0,1), imx_g)
+    #    imy_g= zeros(im.shape)
+    #    gaussian_filter(im, (sigma,sigma), (1,0), imy_g)
+    #    self.data_array = im
+        # Dibujando
+#        plt.close("all")
+#        plt.figure()
+#        plt.suptitle("Imagen y sus gradientes a lo largo de cada eje")
+#        ax = plt.subplot(1,3,1)
+#        ax.axis("off")
+#        ax.imshow(im, cmap = plt.get_cmap('gray'))
+#        ax.set_title("im_empire")
+
+#        ax = plt.subplot(1,3,2)
+#        ax.axis("off")
+#        ax.imshow(imx_g, cmap = plt.get_cmap('gray'))
+#        ax.set_title("gx")
+
+#        ax = plt.subplot(1,3,3)
+#        ax.axis("off")
+#        ax.imshow(imy_g , cmap = plt.get_cmap('gray'))
+#        ax.set_title("gy")
+#        plt.show()
+#        plt.clf() 
